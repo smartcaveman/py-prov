@@ -48,6 +48,7 @@ from prov.constants import (
     PROV_ATTR_USED_ENTITY,
     PROV_ATTRIBUTION,
     PROV_BASE_CLS,
+    PROV_BUNDLE,
     PROV_COMMUNICATION,
     PROV_DELEGATION,
     PROV_DERIVATION,
@@ -506,6 +507,41 @@ class ProvBundle:
                 sub-bundles. Only :class:`ProvDocument` overrides this.
         """
         raise ProvException("A PROV bundle does not contain sub-bundles")
+
+    def as_entity(self) -> ProvEntity:
+        """Return this bundle's identifier as a first-class ``prov:Bundle`` entity.
+
+        PROV-DM §5.4.2 defines a bundle's identifier as also denoting an
+        *entity* of type ``prov:Bundle``, enabling provenance-of-provenance
+        assertions (attributing a bundle to an agent, deriving one bundle
+        from another, and so on). This method materialises that entity in the
+        bundle's parent document: an entity whose identifier is this
+        bundle's, typed ``prov:Bundle``. Calling it again returns an
+        equivalent additional record (creation is not idempotent — the
+        document simply accumulates same-identifier entities, which
+        :meth:`ProvDocument.unified` merges).
+
+        Returns:
+            The new :class:`ProvEntity` typed ``prov:Bundle``, added to the
+            parent document.
+
+        Raises:
+            ProvException: If this bundle has no identifier or is not part of
+                a :class:`ProvDocument` (a standalone bundle denotes no entity
+                in any document).
+        """
+        if self._identifier is None:
+            raise ProvException(
+                "A bundle without an identifier denotes no prov:Bundle entity."
+            )
+        if self._document is None:
+            raise ProvException(
+                "Only a bundle contained in a ProvDocument denotes a "
+                "prov:Bundle entity; add the bundle to a document first."
+            )
+        entity = self._document.entity(self._identifier)
+        entity.add_asserted_type(PROV_BUNDLE)
+        return entity
 
     def get_provn(self, _indent_level: int = 0) -> str:
         """Return the PROV-N representation of the bundle."""

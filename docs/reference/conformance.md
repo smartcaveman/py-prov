@@ -197,21 +197,20 @@ while Plan needs no special handling at all, since it is just an entity passed a
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Bundle constructor §5.4.1 | {py:class}`~prov.model.ProvBundle` | `ProvDocument.bundle()` / `add_bundle()` | `bundle <id> ... endBundle` (structural, hand-emitted by `get_provn()`) | ✓ | ✓ | ✓ | ✓ |
-| Bundle type §5.4.2 | not implemented — see finding below | — | — | — | — | — | — |
+| Bundle type §5.4.2 | {py:class}`~prov.model.ProvEntity` + `prov:Bundle` type | `ProvBundle.as_entity()` | `entity` (plus `[prov:type='prov:Bundle']`) | ✓ | ✓ | ✓ | ✓ |
 
 **Finding:** PROV-DM §5.4.1 defines bundle *containment* — a named, nestable set of records —
 which `prov` fully implements via `ProvDocument.bundle()`/`add_bundle()`; only a
 {py:class}`~prov.model.ProvDocument` may contain named bundles (`is_document()`/`is_bundle()`
 in `bundle.py` distinguish the two at runtime). §5.4.2 additionally lets a bundle's identifier
 denote a first-class entity of type `prov:Bundle`, so that provenance-of-provenance (e.g. "who
-asserted this bundle") can itself be expressed in PROV. That second half is **not implemented**:
-the `PROV_BUNDLE` constant and its `PROV_N_MAP["bundle"]` keyword exist in `constants.py` but
-are consumed only by `dot.py` (for node styling) — no serializer or
-{py:class}`~prov.model.ProvBundle` method ever produces a `prov:Bundle`-typed entity, and
-`get_provn()`'s `bundle <id> ... endBundle` output is generated structurally (branching on
-`is_document()`), not through that keyword lookup. There is currently no supported way to
-attribute a bundle to an agent as a first-class PROV statement. Tracked as
-[#261](https://github.com/trungdong/prov/issues/261).
+asserted this bundle") can itself be expressed in PROV. That second half is implemented by
+{py:meth}`ProvBundle.as_entity() <prov.model.ProvBundle.as_entity>` (added for
+[#261](https://github.com/trungdong/prov/issues/261)): an opt-in factory that materialises the
+bundle's identifier as a `prov:Bundle`-typed entity in the parent document. (`get_provn()`'s
+`bundle <id> ... endBundle` output remains structural — branching on `is_document()` — rather
+than flowing through the `PROV_N_MAP["bundle"]` keyword; containment and the entity type are
+independent PROV-DM notions.)
 
 ## Component 5 — Alternate Entities
 

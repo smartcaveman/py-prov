@@ -1830,3 +1830,34 @@ def test_bundle_4(roundtrip):
     document.add_bundle(bundle2)
 
     roundtrip(document)
+
+
+# BUNDLE AS ENTITY (#261)
+def test_bundle_entity_1(roundtrip):
+    document = new_document()
+    bundle = document.bundle(EX_NS["bundle1"])
+    bundle.entity(EX_NS["e1"])
+    bundle.as_entity()
+    roundtrip(document)
+
+
+def test_bundle_entity_2(roundtrip):
+    # provenance-of-provenance: attribute a bundle to an agent
+    document = new_document()
+    bundle = document.bundle(EX_NS["bundle1"])
+    bundle.entity(EX_NS["e1"])
+    bundle_entity = bundle.as_entity()
+    document.agent(EX_NS["ag1"])
+    document.attribution(bundle_entity, EX_NS["ag1"])
+    roundtrip(document)
+
+
+def test_bundle_entity_3(roundtrip):
+    # provenance-of-provenance: derive one bundle from another
+    document = new_document()
+    bundle1 = document.bundle(EX_NS["bundle1"])
+    bundle1.entity(EX_NS["e1"])
+    bundle2 = document.bundle(EX_NS["bundle2"])
+    bundle2.entity(EX_NS["e2"])
+    document.derivation(bundle2.as_entity(), bundle1.as_entity())
+    roundtrip(document)

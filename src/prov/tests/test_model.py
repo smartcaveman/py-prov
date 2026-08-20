@@ -13,6 +13,10 @@ import pytest
 
 from prov.constants import (
     PROV,
+    PROV_ATTR_ENTITY,
+    PROV_ATTRIBUTION,
+    PROV_BUNDLE,
+    PROV_ENTITY,
     PROV_INTERNATIONALIZEDSTRING,
     PROV_LABEL,
     PROV_TYPE,
@@ -279,6 +283,60 @@ def test_add_bundle_rejects_document_with_nested_bundles():
 
     with pytest.raises(ProvException):
         d1.add_bundle(d2)
+
+
+# The following cover ProvBundle.as_entity() — the supported PROV-DM §5.4.2
+# idiom connecting a bundle's identifier to a prov:Bundle-typed entity in the
+# same document (#261).
+
+
+def test_bundle_as_entity_creates_bundle_typed_entity():
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b1")
+    bundle.entity("ex:e1")
+
+    entity = bundle.as_entity()
+
+    assert entity.get_type() == PROV_ENTITY
+    assert entity.get_asserted_types() == {PROV_BUNDLE}
+    assert entity.identifier == document.valid_qualified_name("ex:b1")
+    # The entity lives in the document, not inside the bundle
+    assert entity in document.get_records()
+    assert entity not in bundle.get_records()
+
+
+def test_bundle_as_entity_supports_provenance_of_provenance():
+    # The materialised entity is an ordinary entity: it can be attributed,
+    # derived, etc.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b1")
+    bundle.entity("ex:e1")
+    entity = bundle.as_entity()
+    document.agent("ex:ag1")
+    document.attribution(entity, "ex:ag1")
+
+    attributions = [
+        r for r in document.get_records() if r.get_type() == PROV_ATTRIBUTION
+    ]
+    (attribution,) = attributions
+    assert attribution.formal_attributes[0] == (
+        PROV_ATTR_ENTITY,
+        entity.identifier,
+    )
+
+
+def test_bundle_as_entity_without_document_raises():
+    bundle = ProvBundle(identifier=Namespace("ex", "http://example.org/")["b1"])
+    with pytest.raises(ProvException):
+        bundle.as_entity()
+
+
+def test_bundle_as_entity_without_identifier_raises():
+    bundle = ProvBundle()
+    with pytest.raises(ProvException):
+        bundle.as_entity()
 
 
 def test_literal_provn_with_single_quotes():
