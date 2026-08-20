@@ -1555,9 +1555,10 @@ class ProvBundle:
     ) -> ProvEntity:
         """Create a new empty-collection entity and add it to the bundle.
 
-        An empty collection is an entity with an additional
+        An empty collection is an entity carrying the
         ``prov:EmptyCollection`` type (PROV-DM §5.6) — a collection that, by
-        definition, has no members.
+        definition, has no members. Since ``prov:EmptyCollection`` is a
+        subtype of ``prov:Collection``, the record asserts both types.
 
         Args:
             identifier: The identifier for the new empty collection.
@@ -1570,6 +1571,7 @@ class ProvBundle:
         """
         record = self.new_record(PROV_ENTITY, identifier, None, other_attributes)
         record.add_asserted_type(PROV["EmptyCollection"])
+        record.add_asserted_type(PROV["Collection"])
         return record  # type: ignore
 
     def membership(self, collection: EntityRef, entity: EntityRef) -> ProvMembership:

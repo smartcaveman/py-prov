@@ -19,7 +19,6 @@ from prov.constants import (
     PROV_ENTITY,
     PROV_INTERNATIONALIZEDSTRING,
     PROV_LABEL,
-    PROV_TYPE,
     XSD,
 )
 from prov.identifier import Namespace
@@ -604,33 +603,36 @@ def test_activity_set_time_end_only(ns_doc):
 # equal to the documented hand-written prov:type idiom.
 
 
-def _typed_idiom_doc(factory_name, prov_type):
+def _typed_idiom_doc(base, prov_types):
     """Build the expected document via the hand-written prov:type idiom."""
     expected = ProvDocument()
     expected.add_namespace("ex", "http://example.org/")
-    base = "agent" if prov_type.localpart != "EmptyCollection" else "entity"
-    getattr(expected, base)("ex:x1", {PROV_TYPE: prov_type, PROV_LABEL: "labelled"})
+    record = getattr(expected, base)("ex:x1", {PROV_LABEL: "labelled"})
+    for prov_type in prov_types:
+        record.add_asserted_type(prov_type)
     return expected
 
 
 @pytest.mark.parametrize(
-    "factory_name, type_name",
+    "factory_name, base, type_names",
     [
-        ("person", "Person"),
-        ("organization", "Organization"),
-        ("software_agent", "SoftwareAgent"),
-        ("empty_collection", "EmptyCollection"),
+        ("person", "agent", ["Person"]),
+        ("organization", "agent", ["Organization"]),
+        ("software_agent", "agent", ["SoftwareAgent"]),
+        # EmptyCollection is a subtype of Collection (PROV-DM §5.6), so the
+        # factory asserts both types.
+        ("empty_collection", "entity", ["EmptyCollection", "Collection"]),
     ],
 )
-def test_subtype_factories(factory_name, type_name):
+def test_subtype_factories(factory_name, base, type_names):
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     record = getattr(document, factory_name)("ex:x1", {PROV_LABEL: "labelled"})
 
-    expected_base = "Agent" if type_name != "EmptyCollection" else "Entity"
+    expected_base = "Agent" if base == "agent" else "Entity"
     assert record.get_type() == PROV[expected_base]
-    assert record.get_asserted_types() == {PROV[type_name]}
-    assert document == _typed_idiom_doc(factory_name, PROV[type_name])
+    assert record.get_asserted_types() == {PROV[t] for t in type_names}
+    assert document == _typed_idiom_doc(base, [PROV[t] for t in type_names])
 
 
 # The following cover NamespaceManager branches not exercised by round-trip
