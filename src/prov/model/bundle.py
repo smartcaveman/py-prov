@@ -48,6 +48,7 @@ from prov.constants import (
     PROV_ATTR_USED_ENTITY,
     PROV_ATTRIBUTION,
     PROV_BASE_CLS,
+    PROV_BUNDLE,
     PROV_COMMUNICATION,
     PROV_DELEGATION,
     PROV_DERIVATION,
@@ -506,6 +507,45 @@ class ProvBundle:
                 sub-bundles. Only :class:`ProvDocument` overrides this.
         """
         raise ProvException("A PROV bundle does not contain sub-bundles")
+
+    def as_entity(self) -> ProvEntity:
+        """Return this bundle's identifier as a first-class ``prov:Bundle`` entity.
+
+        PROV-DM §5.4.2 defines a bundle's identifier as also denoting an
+        *entity* of type ``prov:Bundle``, enabling provenance-of-provenance
+        assertions (attributing a bundle to an agent, deriving one bundle
+        from another, and so on). This method materialises that entity in the
+        bundle's parent document: an entity whose identifier is this
+        bundle's, typed ``prov:Bundle``. The method is idempotent: if the
+        document already holds an entity with this bundle's identifier, the
+        ``prov:Bundle`` type is asserted on it (again) and the existing
+        record is returned rather than a duplicate being created.
+
+        Returns:
+            The :class:`ProvEntity` typed ``prov:Bundle`` held by the parent
+            document (created on first call, reused thereafter).
+
+        Raises:
+            ProvException: If this bundle has no identifier or is not part of
+                a :class:`ProvDocument` (a standalone bundle denotes no entity
+                in any document).
+        """
+        if self._identifier is None:
+            raise ProvException(
+                "A bundle without an identifier denotes no prov:Bundle entity."
+            )
+        if self._document is None:
+            raise ProvException(
+                "Only a bundle contained in a ProvDocument denotes a "
+                "prov:Bundle entity; add the bundle to a document first."
+            )
+        for record in self._document.get_record(self._identifier):
+            if isinstance(record, ProvEntity):
+                record.add_asserted_type(PROV_BUNDLE)
+                return record
+        entity = self._document.entity(self._identifier)
+        entity.add_asserted_type(PROV_BUNDLE)
+        return entity
 
     def get_provn(self, _indent_level: int = 0) -> str:
         """Return the PROV-N representation of the bundle."""
@@ -1031,6 +1071,74 @@ class ProvBundle:
         """
         return self.new_record(PROV_AGENT, identifier, None, other_attributes)  # type: ignore
 
+    def person(
+        self,
+        identifier: QualifiedNameCandidate,
+        other_attributes: RecordAttributesArg | None = None,
+    ) -> ProvAgent:
+        """Create a new person agent and add it to the bundle.
+
+        A person is an agent with an additional ``prov:Person`` type
+        (PROV-DM §5.3.1).
+
+        Args:
+            identifier: The identifier for the new person.
+            other_attributes: Optional attributes for the person, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvAgent`, typed as a person.
+        """
+        record = self.agent(identifier, other_attributes)
+        record.add_asserted_type(PROV["Person"])
+        return record
+
+    def organization(
+        self,
+        identifier: QualifiedNameCandidate,
+        other_attributes: RecordAttributesArg | None = None,
+    ) -> ProvAgent:
+        """Create a new organization agent and add it to the bundle.
+
+        An organization is an agent with an additional ``prov:Organization``
+        type (PROV-DM §5.3.1).
+
+        Args:
+            identifier: The identifier for the new organization.
+            other_attributes: Optional attributes for the organization, as a
+                dict or an iterable of ``(name, value)`` pairs (default:
+                ``None``).
+
+        Returns:
+            The new :class:`ProvAgent`, typed as an organization.
+        """
+        record = self.agent(identifier, other_attributes)
+        record.add_asserted_type(PROV["Organization"])
+        return record
+
+    def software_agent(
+        self,
+        identifier: QualifiedNameCandidate,
+        other_attributes: RecordAttributesArg | None = None,
+    ) -> ProvAgent:
+        """Create a new software agent and add it to the bundle.
+
+        A software agent is an agent with an additional ``prov:SoftwareAgent``
+        type (PROV-DM §5.3.1).
+
+        Args:
+            identifier: The identifier for the new software agent.
+            other_attributes: Optional attributes for the software agent, as a
+                dict or an iterable of ``(name, value)`` pairs (default:
+                ``None``).
+
+        Returns:
+            The new :class:`ProvAgent`, typed as a software agent.
+        """
+        record = self.agent(identifier, other_attributes)
+        record.add_asserted_type(PROV["SoftwareAgent"])
+        return record
+
     def attribution(
         self,
         entity: EntityRef,
@@ -1441,6 +1549,32 @@ class ProvBundle:
             The new :class:`ProvEntity`, typed as a collection.
         """
         record = self.new_record(PROV_ENTITY, identifier, None, other_attributes)
+        record.add_asserted_type(PROV["Collection"])
+        return record  # type: ignore
+
+    def empty_collection(
+        self,
+        identifier: QualifiedNameCandidate,
+        other_attributes: RecordAttributesArg | None = None,
+    ) -> ProvEntity:
+        """Create a new empty-collection entity and add it to the bundle.
+
+        An empty collection is an entity carrying the
+        ``prov:EmptyCollection`` type (PROV-DM §5.6) — a collection that, by
+        definition, has no members. Since ``prov:EmptyCollection`` is a
+        subtype of ``prov:Collection``, the record asserts both types.
+
+        Args:
+            identifier: The identifier for the new empty collection.
+            other_attributes: Optional attributes for the collection, as a
+                dict or an iterable of ``(name, value)`` pairs (default:
+                ``None``).
+
+        Returns:
+            The new :class:`ProvEntity`, typed as an empty collection.
+        """
+        record = self.new_record(PROV_ENTITY, identifier, None, other_attributes)
+        record.add_asserted_type(PROV["EmptyCollection"])
         record.add_asserted_type(PROV["Collection"])
         return record  # type: ignore
 

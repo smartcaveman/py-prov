@@ -109,12 +109,14 @@ Who is responsible for what, and the most general relation of all — influence.
 | Influence (*wasInfluencedBy*) | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` |
 
 PROV-DM also defines agent *subtypes* — Person, Organization, and SoftwareAgent — and the
-Plan entity subtype used with associations. These are not separate classes or factories in
-`prov`; you express them by adding a `prov:type` attribute whose value is the pre-defined
-*qualified name* (for example, `agent("ag", {prov.PROV_TYPE: prov.PROV["Person"]})`).
-Note that the value must be a qualified name: a plain string such as `"prov:Person"` is
-stored (and serialized) as just that string, which per PROV-DM §5.7.2.4 does not denote
-the pre-defined type at all.
+Plan entity subtype used with associations. These are not separate classes in `prov`; an
+agent subtype is an ordinary agent carrying the corresponding `prov:type`. The
+`person()`, `organization()`, and `software_agent()` factories add that type for you —
+`person("ag")` is exactly equivalent to `agent("ag", {prov.PROV_TYPE: prov.PROV["Person"]})`.
+Plan needs no factory: it is just an entity passed as the `plan=` argument to
+`association()`. Note that a `prov:type` value must be a qualified name: a plain string
+such as `"prov:Person"` is stored (and serialized) as just that string, which per PROV-DM
+§5.7.2.4 does not denote the pre-defined type at all.
 
 ### Component 4 — Bundles
 
@@ -133,6 +135,14 @@ Only a {py:class}`~prov.model.ProvDocument` may contain bundles; a plain
 {py:class}`~prov.model.ProvBundle` may not nest further. See {doc}`unification-flattening`
 for how {py:meth}`~prov.model.ProvDocument.flattened` collapses bundle contents back up into
 the document.
+
+A bundle's identifier also denotes an *entity* of type `prov:Bundle` (PROV-DM §5.4.2), so
+that provenance of provenance — "who asserted this bundle?", "which bundle was derived
+from which?" — can itself be expressed in PROV. {py:meth}`ProvBundle.as_entity()
+<prov.model.ProvBundle.as_entity>` materialises that entity in the bundle's parent
+document: `bundle.as_entity()` returns an ordinary {py:class}`~prov.model.ProvEntity`
+whose identifier is the bundle's own, typed `prov:Bundle`, ready to be attributed,
+derived, or otherwise described like any other entity.
 
 ### Component 5 — Alternate Entities
 
@@ -155,12 +165,14 @@ Entities that are collections of other entities, and membership in them.
 | PROV-DM concept | `prov` class | `ProvBundle` factory method |
 | --- | --- | --- |
 | Collection | {py:class}`~prov.model.ProvEntity` (typed `prov:Collection`) | `collection()` |
+| Empty collection | {py:class}`~prov.model.ProvEntity` (typed `prov:EmptyCollection` and its supertype `prov:Collection`) | `empty_collection()` |
 | Membership (*hadMember*) | {py:class}`~prov.model.ProvMembership` | `membership()` / `hadMember()` |
 
 A collection is an ordinary {py:class}`~prov.model.ProvEntity` carrying the
-`prov:Collection` type; the `collection()` factory adds that type for you. (PROV-DM's
+`prov:Collection` type; the `collection()` factory adds that type for you. PROV-DM's
 `EmptyCollection` is likewise expressed as the `prov:EmptyCollection` type rather than a
-dedicated class.)
+dedicated class, and the `empty_collection()` factory adds that type (and its `prov:Collection`
+supertype) for you.
 
 ## Qualified names and namespaces
 

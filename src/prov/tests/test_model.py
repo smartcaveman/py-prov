@@ -11,7 +11,16 @@ import shutil
 
 import pytest
 
-from prov.constants import PROV_INTERNATIONALIZEDSTRING, XSD
+from prov.constants import (
+    PROV,
+    PROV_ATTR_ENTITY,
+    PROV_ATTRIBUTION,
+    PROV_BUNDLE,
+    PROV_ENTITY,
+    PROV_INTERNATIONALIZEDSTRING,
+    PROV_LABEL,
+    XSD,
+)
 from prov.identifier import Namespace
 from prov.model import (
     Literal,
@@ -275,6 +284,75 @@ def test_add_bundle_rejects_document_with_nested_bundles():
         d1.add_bundle(d2)
 
 
+# The following cover ProvBundle.as_entity() — the supported PROV-DM §5.4.2
+# idiom connecting a bundle's identifier to a prov:Bundle-typed entity in the
+# same document (#261).
+
+
+def test_bundle_as_entity_creates_bundle_typed_entity():
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b1")
+    bundle.entity("ex:e1")
+
+    entity = bundle.as_entity()
+
+    assert entity.get_type() == PROV_ENTITY
+    assert entity.get_asserted_types() == {PROV_BUNDLE}
+    assert entity.identifier == document.valid_qualified_name("ex:b1")
+    # The entity lives in the document, not inside the bundle
+    assert entity in document.get_records()
+    assert entity not in bundle.get_records()
+
+
+def test_bundle_as_entity_supports_provenance_of_provenance():
+    # The materialised entity is an ordinary entity: it can be attributed,
+    # derived, etc.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b1")
+    bundle.entity("ex:e1")
+    entity = bundle.as_entity()
+    document.agent("ex:ag1")
+    document.attribution(entity, "ex:ag1")
+
+    attributions = [
+        r for r in document.get_records() if r.get_type() == PROV_ATTRIBUTION
+    ]
+    (attribution,) = attributions
+    assert attribution.formal_attributes[0] == (
+        PROV_ATTR_ENTITY,
+        entity.identifier,
+    )
+
+
+def test_bundle_as_entity_is_idempotent():
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b1")
+    first = bundle.as_entity()
+    second = bundle.as_entity()
+    assert second is first
+    entities = [
+        r
+        for r in document.get_records()
+        if r.get_type() == PROV_ENTITY and r.identifier == first.identifier
+    ]
+    assert entities == [first]
+
+
+def test_bundle_as_entity_without_document_raises():
+    bundle = ProvBundle(identifier=Namespace("ex", "http://example.org/")["b1"])
+    with pytest.raises(ProvException):
+        bundle.as_entity()
+
+
+def test_bundle_as_entity_without_identifier_raises():
+    bundle = ProvBundle()
+    with pytest.raises(ProvException):
+        bundle.as_entity()
+
+
 def test_literal_provn_with_single_quotes():
     literal = Literal('{"foo": "bar"}')
     string_rep = literal.provn_representation()
@@ -533,6 +611,43 @@ def test_activity_set_time_end_only(ns_doc):
     a1.set_time(endTime=end)
     assert a1.get_startTime() is None
     assert a1.get_endTime() == end
+
+
+# The following cover the convenience factories for the PROV-DM agent
+# subtypes and for EmptyCollection (#260). Each factory must produce a record
+# equal to the documented hand-written prov:type idiom.
+
+
+def _typed_idiom_doc(base, prov_types):
+    """Build the expected document via the hand-written prov:type idiom."""
+    expected = ProvDocument()
+    expected.add_namespace("ex", "http://example.org/")
+    record = getattr(expected, base)("ex:x1", {PROV_LABEL: "labelled"})
+    for prov_type in prov_types:
+        record.add_asserted_type(prov_type)
+    return expected
+
+
+@pytest.mark.parametrize(
+    "factory_name, base, type_names",
+    [
+        ("person", "agent", ["Person"]),
+        ("organization", "agent", ["Organization"]),
+        ("software_agent", "agent", ["SoftwareAgent"]),
+        # EmptyCollection is a subtype of Collection (PROV-DM §5.6), so the
+        # factory asserts both types.
+        ("empty_collection", "entity", ["EmptyCollection", "Collection"]),
+    ],
+)
+def test_subtype_factories(factory_name, base, type_names):
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    record = getattr(document, factory_name)("ex:x1", {PROV_LABEL: "labelled"})
+
+    expected_base = "Agent" if base == "agent" else "Entity"
+    assert record.get_type() == PROV[expected_base]
+    assert record.get_asserted_types() == {PROV[t] for t in type_names}
+    assert document == _typed_idiom_doc(base, [PROV[t] for t in type_names])
 
 
 # The following cover NamespaceManager branches not exercised by round-trip
