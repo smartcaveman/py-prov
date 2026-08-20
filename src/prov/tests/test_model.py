@@ -326,6 +326,21 @@ def test_bundle_as_entity_supports_provenance_of_provenance():
     )
 
 
+def test_bundle_as_entity_is_idempotent():
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b1")
+    first = bundle.as_entity()
+    second = bundle.as_entity()
+    assert second is first
+    entities = [
+        r
+        for r in document.get_records()
+        if r.get_type() == PROV_ENTITY and r.identifier == first.identifier
+    ]
+    assert entities == [first]
+
+
 def test_bundle_as_entity_without_document_raises():
     bundle = ProvBundle(identifier=Namespace("ex", "http://example.org/")["b1"])
     with pytest.raises(ProvException):
