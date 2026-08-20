@@ -176,7 +176,7 @@ output from this library always uses the base `wasDerivedFrom` form.
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ | ✓ |
-| Person / Organization / SoftwareAgent §5.3.1 | via `prov:type` on {py:class}`~prov.model.ProvAgent` | none — see finding below | `person` / `organization` / `softwareAgent` (`ADDITIONAL_N_MAP`, not emitted directly by this library) | ✓ | ✓ | ✓ | ✓ |
+| Person / Organization / SoftwareAgent §5.3.1 | via `prov:type` on {py:class}`~prov.model.ProvAgent` | `person()` / `organization()` / `software_agent()` | `person` / `organization` / `softwareAgent` (`ADDITIONAL_N_MAP`, not emitted directly by this library) | ✓ | ✓ | ✓ | ✓ |
 | Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ | ✓ |
 | Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ | ✓ |
 | Plan §5.3.3 | via `association(plan=...)` | — | — (plan is an ordinary entity referenced by the association's `plan` formal attribute) | ✓ | ✓ | ✓ | ✓ |
@@ -184,14 +184,13 @@ output from this library always uses the base `wasDerivedFrom` form.
 | Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ | ✓ |
 
 **Finding:** PROV-DM defines Person, Organization, and SoftwareAgent as agent subtypes, and Plan
-as an entity subtype used with associations. `prov` has no dedicated classes or factories for the
-agent subtypes — you express them with `agent("ag", {PROV_TYPE: PROV["Person"]})` — while Plan
-needs no special handling at all, since it is just an entity passed as the `plan=` argument to
-`association()`. This is a documented, intentional design choice
-(`docs/explanation/prov-dm.md:111-117`), not a defect; see finding log for the audit note.
-Convenience factories for the three agent subtypes (together with `EmptyCollection`, see
-Component 6) are now tracked as
-[#260](https://github.com/trungdong/prov/issues/260).
+as an entity subtype used with associations. `prov` has no dedicated *classes* for the agent
+subtypes — the subtype is carried as a `prov:type` on an ordinary agent, and the
+`person()` / `organization()` / `software_agent()` convenience factories (added for
+[#260](https://github.com/trungdong/prov/issues/260)) assert that type for you —
+while Plan needs no special handling at all, since it is just an entity passed as the
+`plan=` argument to `association()`. This is a documented, intentional design choice
+(`docs/explanation/prov-dm.md`), not a defect; see finding log for the audit note.
 
 ## Component 4 — Bundles
 
@@ -227,15 +226,15 @@ attribute a bundle to an agent as a first-class PROV statement. Tracked as
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Collection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:Collection` type | `collection()` | `entity` (plus `[prov:type='prov:Collection']`) | ✓ | ✓ | ✓ | ✓ |
-| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type — no dedicated factory | none — see finding below | `entity` (plus `[prov:type='prov:EmptyCollection']`, keyword `emptyCollection` in `ADDITIONAL_N_MAP`, not emitted directly) | ✓ | ✓ | ✓ | ✓ |
+| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type | `empty_collection()` | `entity` (plus `[prov:type='prov:EmptyCollection']`, keyword `emptyCollection` in `ADDITIONAL_N_MAP`, not emitted directly) | ✓ | ✓ | ✓ | ✓ |
 | Membership §5.6 | {py:class}`~prov.model.ProvMembership` | `membership()` / `hadMember()` | `hadMember` | ✓ | ✓ | ✓ | ✓ |
 
 **Finding:** like collections, `EmptyCollection` is a real PROV-DM type with a real
 `ADDITIONAL_N_MAP`/`PROV_BASE_CLS` entry in `constants.py`, so the round-trip machinery
-understands it — but there is no `empty_collection()` factory or `empty=` flag on `collection()`
-to set the type for you; you would add `prov:type: PROV["EmptyCollection"]` by hand via
-`other_attributes`. Tracked (together with the agent-subtype factories, see Component 3) as
-[#260](https://github.com/trungdong/prov/issues/260).
+understands it. The `empty_collection()` factory (added for
+[#260](https://github.com/trungdong/prov/issues/260), together with the agent-subtype
+factories, see Component 3) asserts the `prov:EmptyCollection` type for you — the same
+shape as the long-standing `collection()` factory.
 
 ## Additional attributes
 

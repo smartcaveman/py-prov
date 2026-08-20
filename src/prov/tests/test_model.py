@@ -11,7 +11,13 @@ import shutil
 
 import pytest
 
-from prov.constants import PROV_INTERNATIONALIZEDSTRING, XSD
+from prov.constants import (
+    PROV,
+    PROV_INTERNATIONALIZEDSTRING,
+    PROV_LABEL,
+    PROV_TYPE,
+    XSD,
+)
 from prov.identifier import Namespace
 from prov.model import (
     Literal,
@@ -533,6 +539,40 @@ def test_activity_set_time_end_only(ns_doc):
     a1.set_time(endTime=end)
     assert a1.get_startTime() is None
     assert a1.get_endTime() == end
+
+
+# The following cover the convenience factories for the PROV-DM agent
+# subtypes and for EmptyCollection (#260). Each factory must produce a record
+# equal to the documented hand-written prov:type idiom.
+
+
+def _typed_idiom_doc(factory_name, prov_type):
+    """Build the expected document via the hand-written prov:type idiom."""
+    expected = ProvDocument()
+    expected.add_namespace("ex", "http://example.org/")
+    base = "agent" if prov_type.localpart != "EmptyCollection" else "entity"
+    getattr(expected, base)("ex:x1", {PROV_TYPE: prov_type, PROV_LABEL: "labelled"})
+    return expected
+
+
+@pytest.mark.parametrize(
+    "factory_name, type_name",
+    [
+        ("person", "Person"),
+        ("organization", "Organization"),
+        ("software_agent", "SoftwareAgent"),
+        ("empty_collection", "EmptyCollection"),
+    ],
+)
+def test_subtype_factories(factory_name, type_name):
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    record = getattr(document, factory_name)("ex:x1", {PROV_LABEL: "labelled"})
+
+    expected_base = "Agent" if type_name != "EmptyCollection" else "Entity"
+    assert record.get_type() == PROV[expected_base]
+    assert record.get_asserted_types() == {PROV[type_name]}
+    assert document == _typed_idiom_doc(factory_name, PROV[type_name])
 
 
 # The following cover NamespaceManager branches not exercised by round-trip
