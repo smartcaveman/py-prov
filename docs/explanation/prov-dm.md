@@ -157,13 +157,14 @@ Entities that are collections of other entities, and membership in them.
 | PROV-DM concept | `prov` class | `ProvBundle` factory method |
 | --- | --- | --- |
 | Collection | {py:class}`~prov.model.ProvEntity` (typed `prov:Collection`) | `collection()` |
-| Empty collection | {py:class}`~prov.model.ProvEntity` (typed `prov:EmptyCollection`) | `empty_collection()` |
+| Empty collection | {py:class}`~prov.model.ProvEntity` (typed `prov:EmptyCollection` and its supertype `prov:Collection`) | `empty_collection()` |
 | Membership (*hadMember*) | {py:class}`~prov.model.ProvMembership` | `membership()` / `hadMember()` |
 
 A collection is an ordinary {py:class}`~prov.model.ProvEntity` carrying the
 `prov:Collection` type; the `collection()` factory adds that type for you. PROV-DM's
 `EmptyCollection` is likewise expressed as the `prov:EmptyCollection` type rather than a
-dedicated class, and the `empty_collection()` factory adds that type for you.
+dedicated class, and the `empty_collection()` factory adds that type (and its `prov:Collection`
+supertype) for you.
 
 ## Qualified names and namespaces
 
