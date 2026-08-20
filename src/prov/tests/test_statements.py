@@ -433,6 +433,46 @@ def test_agent_8(roundtrip):
     roundtrip(document)
 
 
+# AGENT SUBTYPES (#260)
+def test_person_1(roundtrip):
+    document = new_document()
+    document.person(EX_NS["person1"])
+    roundtrip(document)
+
+
+def test_person_2(roundtrip):
+    document = new_document()
+    a = document.person(EX_NS["person2"], {PROV_LABEL: "person2"})
+    add_further_attributes(a)
+    roundtrip(document)
+
+
+def test_organization_1(roundtrip):
+    document = new_document()
+    document.organization(EX_NS["org1"])
+    roundtrip(document)
+
+
+def test_organization_2(roundtrip):
+    document = new_document()
+    a = document.organization(EX_NS["org2"], {PROV_LABEL: "org2"})
+    add_further_attributes(a)
+    roundtrip(document)
+
+
+def test_software_agent_1(roundtrip):
+    document = new_document()
+    document.software_agent(EX_NS["swag1"])
+    roundtrip(document)
+
+
+def test_software_agent_2(roundtrip):
+    document = new_document()
+    a = document.software_agent(EX_NS["swag2"], {PROV_LABEL: "swag2"})
+    add_further_attributes(a)
+    roundtrip(document)
+
+
 # GENERATIONS
 def test_generation_1(roundtrip):
     document = new_document()
@@ -1366,6 +1406,34 @@ def test_membership_3(roundtrip):
     document.membership(EX_NS["c"], EX_NS["e1"])
     document.membership(EX_NS["c"], EX_NS["e2"])
     document.membership(EX_NS["c"], EX_NS["e3"])
+    roundtrip(document)
+
+
+# COLLECTIONS (#260)
+def test_collection_1(roundtrip):
+    document = new_document()
+    document.collection(EX_NS["c1"])
+    roundtrip(document)
+
+
+def test_collection_2(roundtrip):
+    document = new_document()
+    c = document.collection(EX_NS["c2"], {PROV_LABEL: "collection2"})
+    add_further_attributes(c)
+    document.membership(c, EX_NS["e1"])
+    roundtrip(document)
+
+
+def test_empty_collection_1(roundtrip):
+    document = new_document()
+    document.empty_collection(EX_NS["ec1"])
+    roundtrip(document)
+
+
+def test_empty_collection_2(roundtrip):
+    document = new_document()
+    c = document.empty_collection(EX_NS["ec2"], {PROV_LABEL: "empty2"})
+    add_further_attributes(c)
     roundtrip(document)
 
 
