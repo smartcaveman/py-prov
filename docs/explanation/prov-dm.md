@@ -134,6 +134,14 @@ Only a {py:class}`~prov.model.ProvDocument` may contain bundles; a plain
 for how {py:meth}`~prov.model.ProvDocument.flattened` collapses bundle contents back up into
 the document.
 
+A bundle's identifier also denotes an *entity* of type `prov:Bundle` (PROV-DM §5.4.2), so
+that provenance of provenance — "who asserted this bundle?", "which bundle was derived
+from which?" — can itself be expressed in PROV. {py:meth}`ProvBundle.as_entity()
+<prov.model.ProvBundle.as_entity>` materialises that entity in the bundle's parent
+document: `bundle.as_entity()` returns an ordinary {py:class}`~prov.model.ProvEntity`
+whose identifier is the bundle's own, typed `prov:Bundle`, ready to be attributed,
+derived, or otherwise described like any other entity.
+
 ### Component 5 — Alternate Entities
 
 Relations that connect different entities that present aspects of the same underlying thing.
